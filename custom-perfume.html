@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Custom Perfume Builder — Gala Parfume</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=Manrope:wght@400;500;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css">
+<style>
+  .notes-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:6px;}
+  @media (max-width:640px){.notes-grid{grid-template-columns:1fr;}}
+  .note-card{border:1px solid var(--line);border-radius:var(--radius);padding:14px 16px;cursor:pointer;position:relative;transition:all .15s ease;}
+  .note-card:hover{border-color:var(--gold-dim);}
+  .note-card.checked{border-color:var(--gold);background:var(--amber-bg);}
+  .note-card .note-top{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;}
+  .note-card .note-name{font-weight:700;font-size:.95rem;}
+  .note-card .note-price{color:var(--gold-dim);font-weight:700;font-size:.78rem;white-space:nowrap;}
+  .note-card .note-desc{color:var(--muted);font-size:.78rem;margin-top:4px;line-height:1.4;padding-right:26px;}
+  .note-card .note-check{position:absolute;bottom:12px;right:14px;width:20px;height:20px;border-radius:50%;border:1px solid var(--line);display:flex;align-items:center;justify-content:center;font-size:.7rem;color:#231c0c;}
+  .note-card.checked .note-check{background:var(--gold);border-color:var(--gold);}
+  .category-head{display:flex;align-items:center;gap:8px;margin-bottom:2px;}
+  .category-head .ic{font-size:1.1rem;}
+
+  .size-list{display:flex;flex-direction:column;gap:12px;}
+  .size-card{border:1px solid var(--line);border-radius:var(--radius);padding:14px 16px;cursor:pointer;display:flex;justify-content:space-between;align-items:center;transition:all .15s ease;}
+  .size-card:hover{border-color:var(--gold-dim);}
+  .size-card.checked{border-color:var(--gold);background:var(--amber-bg);}
+  .size-card .size-name{display:block;font-weight:700;font-size:.95rem;}
+  .size-card .size-price{color:var(--gold-dim);font-weight:700;font-size:.85rem;margin-top:2px;}
+  .size-card .size-check{width:22px;height:22px;border-radius:50%;border:1px solid var(--line);display:flex;align-items:center;justify-content:center;font-size:.75rem;color:#231c0c;flex-shrink:0;}
+  .size-card.checked .size-check{background:var(--gold);border-color:var(--gold);}
+</style>
+</head>
+<body>
+
+<div data-nav></div>
+
+<div class="page-head">
+  <div class="wrap">
+    <h1>Custom Perfume Builder</h1>
+    <div class="crumb">Home / Custom Perfume</div>
+  </div>
+</div>
+
+<section class="section">
+  <div class="wrap two-col">
+    <div>
+      <div class="panel">
+        <h3>1. Choose Your Notes</h3>
+        <p class="text-muted" style="margin-top:-10px;font-size:.85rem;">Pilih minimal satu aroma dari tiap lapisan untuk membangun profil parfum kamu.</p>
+        <div id="notesByCategory"></div>
+      </div>
+
+      <div class="panel">
+        <h3>2. Name Your Creation</h3>
+        <div class="field mt-0">
+          <label>Perfume Name (optional)</label>
+          <input type="text" id="customName" placeholder="e.g. My Signature Blend">
+        </div>
+      </div>
+    </div>
+
+    <div style="position:sticky;top:94px;align-self:start;">
+      <div class="panel">
+        <h3>Bottle Size</h3>
+        <div class="size-list" id="sizeOptions"></div>
+      </div>
+
+      <div class="panel">
+        <h3>Price Summary</h3>
+        <div id="chosenNotes" class="text-muted" style="font-size:.85rem;margin-bottom:14px;">Belum ada aroma dipilih.</div>
+        <div class="summary-row"><span>Bottle Size</span><span id="sBase">Rp 0</span></div>
+        <div class="summary-row"><span>Selected Aromas (<span id="sNoteCount">0</span>)</span><span id="sNotes">Rp 0</span></div>
+        <div class="summary-row total"><span>Total Price</span><span class="amt" id="sTotal">Rp 0</span></div>
+        <button class="btn btn-gold btn-block" id="addCustomBtn" style="margin-top:16px;" disabled>Add to Cart</button>
+        <a href="shop.html" class="btn btn-dark btn-block" style="margin-top:10px;">Browse Products</a>
+        <p class="field-hint" id="formHint" style="margin-top:10px;"></p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div data-footer></div>
+
+<script src="js/store.js"></script>
+<script src="js/ui.js"></script>
+<script>
+  UI.mountChrome('', 'custom');
+
+  const BASE_PRICE = 150000;
+  const PRICE_PER_NOTE = 15000;
+
+  const aromas = Store.getAromas();
+  const sizes = Store.getSizes();
+  const byCategory = aromas.reduce((acc,a)=>{ (acc[a.category] = acc[a.category]||[]).push(a); return acc; }, {});
+  const categoryMeta = [
+    {key:'Top Note',  label:'Top Notes',    sub:'The first impression — light and refreshing', icon:'⭐'},
+    {key:'Heart Note',label:'Middle Notes', sub:'The heart of the fragrance — floral and rich', icon:'💛'},
+    {key:'Base Note', label:'Base Notes',   sub:'The foundation — warm and long-lasting',       icon:'⚓'},
+  ];
+
+  let selectedNoteIds = [];
+
+  function renderNotes(){
+    document.getElementById('notesByCategory').innerHTML = categoryMeta.filter(c=>byCategory[c.key]).map(cat => `
+      <div style="margin-bottom:22px;">
+        <div class="category-head"><span class="ic">${cat.icon}</span><h4 style="margin:0;">${cat.label}</h4></div>
+        <p class="text-muted" style="font-size:.78rem;margin:2px 0 12px;">${cat.sub}</p>
+        <div class="notes-grid">
+          ${byCategory[cat.key].map(a => {
+            const checked = selectedNoteIds.includes(a.id);
+            return `
+            <div class="note-card ${checked ? 'checked' : ''}" data-note="${a.id}">
+              <div class="note-top">
+                <span class="note-name">${a.name}</span>
+                <span class="note-price">+${Store.fmt(PRICE_PER_NOTE)}</span>
+              </div>
+              <div class="note-desc">${a.description}</div>
+              <span class="note-check">${checked ? '✓' : ''}</span>
+            </div>`;
+          }).join('')}
+        </div>
+      </div>
+    `).join('');
+  }
+  renderNotes();
+
+  let selectedSizeId = sizes[0] ? sizes[0].id : null;
+
+  function renderSizes(){
+    document.getElementById('sizeOptions').innerHTML = sizes.map(s => {
+      const checked = s.id === selectedSizeId;
+      const price = BASE_PRICE + s.modifier;
+      return `
+      <div class="size-card ${checked ? 'checked' : ''}" data-size="${s.id}">
+        <div>
+          <span class="size-name">${s.label}</span>
+          <span class="size-price">${Store.fmt(price)}</span>
+        </div>
+        <span class="size-check">${checked ? '✓' : ''}</span>
+      </div>`;
+    }).join('');
+  }
+  renderSizes();
+
+  const addBtn = document.getElementById('addCustomBtn');
+
+  function selectedNotes(){
+    return aromas.filter(a => selectedNoteIds.includes(a.id));
+  }
+  function selectedSize(){
+    return sizes.find(s => s.id === selectedSizeId);
+  }
+
+  function recalc(){
+    const notes = selectedNotes();
+    const size = selectedSize();
+    const bottlePrice = BASE_PRICE + (size ? size.modifier : 0);
+    const notesPrice = notes.length * PRICE_PER_NOTE;
+    const total = bottlePrice + notesPrice;
+
+    document.getElementById('chosenNotes').textContent = notes.length ? notes.map(n=>n.name).join(', ') : 'Belum ada aroma dipilih.';
+    document.getElementById('sBase').textContent = Store.fmt(bottlePrice);
+    document.getElementById('sNoteCount').textContent = notes.length;
+    document.getElementById('sNotes').textContent = Store.fmt(notesPrice);
+    document.getElementById('sTotal').textContent = Store.fmt(total);
+
+    const ok = notes.length > 0;
+    addBtn.disabled = !ok;
+    document.getElementById('formHint').textContent = ok ? '' : 'Pilih minimal satu aroma untuk melanjutkan.';
+
+    return {notes, size, total};
+  }
+
+  document.getElementById('notesByCategory').addEventListener('click', e=>{
+    const card = e.target.closest('[data-note]');
+    if(!card) return;
+    const id = card.dataset.note;
+    selectedNoteIds = selectedNoteIds.includes(id)
+      ? selectedNoteIds.filter(x=>x!==id)
+      : [...selectedNoteIds, id];
+    renderNotes();
+    recalc();
+  });
+  document.getElementById('sizeOptions').addEventListener('click', e=>{
+    const card = e.target.closest('[data-size]');
+    if(!card) return;
+    selectedSizeId = card.dataset.size;
+    renderSizes();
+    recalc();
+  });
+
+  addBtn.addEventListener('click', ()=>{
+    const {notes, size, total} = recalc();
+    if(!notes.length) return;
+    const customName = document.getElementById('customName').value.trim();
+    const label = customName || `Custom Perfume - ${notes.map(n=>n.name).join(', ')}`;
+    Store.addToCart({
+      type:'custom',
+      name: label,
+      unit_price: total,
+      qty: 1,
+      meta: {notes: notes.map(n=>n.name), size: size.label}
+    });
+    UI.mountChrome('', 'custom');
+    addBtn.textContent = 'Added to Cart ✓';
+    setTimeout(()=> addBtn.textContent = 'Add to Cart', 1300);
+  });
+
+  recalc();
+</script>
+</body>
+</html>

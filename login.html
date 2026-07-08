@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Login — Gala Parfume</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=Manrope:wght@400;500;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<div data-nav></div>
+
+<div class="auth-shell">
+  <div class="auth-card">
+    <div class="ico">
+      <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/></svg>
+    </div>
+    <h1>Welcome Back</h1>
+    <div id="loginAlert"></div>
+    <form id="loginForm">
+      <div class="field">
+        <label>Email Address</label>
+        <input type="email" id="lEmail" required placeholder="Enter your email">
+      </div>
+      <div class="field">
+        <label>Password</label>
+        <input type="password" id="lPassword" required placeholder="Enter your password">
+      </div>
+      <div class="flex-between" style="margin-bottom:18px;">
+        <label class="checkbox-row" style="color:var(--cream-2);font-size:.82rem;"><input type="checkbox"> Remember me</label>
+        <a href="#" style="font-size:.82rem;color:var(--gold-bright);">Forgot password?</a>
+      </div>
+      <button type="submit" class="btn btn-gold btn-block">Sign In</button>
+    </form>
+    <div class="auth-divider">or</div>
+    <div class="auth-switch">Don't have an account? <a href="register.html">Create Account</a></div>
+    <a href="index.html" class="back-home">&larr; Back to Home</a>
+    <p class="field-hint" style="text-align:center;color:var(--muted-lt);margin-top:14px;">Demo admin: admin@gala.com / admin123</p>
+  </div>
+</div>
+
+<script src="js/store.js"></script>
+<script src="js/ui.js"></script>
+<script>
+  UI.mountChrome('', 'login');
+  document.getElementById('loginForm').addEventListener('submit', e=>{
+    e.preventDefault();
+    const email = document.getElementById('lEmail').value.trim();
+    const password = document.getElementById('lPassword').value;
+    const res = Store.login(email, password);
+    const alertBox = document.getElementById('loginAlert');
+    if(!res.ok){
+      alertBox.innerHTML = `<div class="alert alert-error">${res.msg}</div>`;
+      return;
+    }
+    location.href = res.user.role==='admin' ? 'admin/dashboard.html' : 'index.html';
+  });
+</script>
+</body>
+</html>

@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Checkout — Gala Parfume</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=Manrope:wght@400;500;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<div data-nav></div>
+
+<div class="page-head">
+  <div class="wrap">
+    <h1>Checkout</h1>
+    <div class="crumb">Home / Cart / Checkout</div>
+  </div>
+</div>
+
+<section class="section">
+  <div class="wrap two-col" id="checkoutLayout"></div>
+</section>
+
+<div data-footer></div>
+
+<script src="js/store.js"></script>
+<script src="js/ui.js"></script>
+<script>
+  UI.mountChrome('', 'cart');
+  const cart = Store.getCart();
+  const layout = document.getElementById('checkoutLayout');
+
+  if(cart.length===0){
+    layout.innerHTML = `<div class="empty" style="grid-column:1/-1;"><h3>Your cart is empty</h3><p>Add something before checking out.</p><a href="shop.html" class="btn btn-gold">Go to Shop</a></div>`;
+  } else {
+    const user = Store.currentUser();
+    layout.innerHTML = `
+      <div class="panel">
+        <h3>Customer Information</h3>
+        <form id="checkoutForm">
+          <div class="field">
+            <label>Full Name</label>
+            <input type="text" id="cName" required value="${user? user.name:''}">
+          </div>
+          <div class="field">
+            <label>Email</label>
+            <input type="email" id="cEmail" required value="${user? user.email:''}">
+          </div>
+          <div class="field">
+            <label>Phone Number</label>
+            <input type="tel" id="cPhone" required placeholder="08xx xxxx xxxx">
+          </div>
+          <div class="field">
+            <label>Shipping Address</label>
+            <textarea id="cAddress" required placeholder="Street, city, postal code"></textarea>
+          </div>
+          <div class="field">
+            <label>Payment Proof</label>
+            <label class="field-file" id="fileLabel">
+              <span id="fileText">Click to upload transfer receipt (image)</span>
+              <input type="file" id="cProof" accept="image/*">
+            </label>
+            <div class="field-hint">Transfer the total amount, then upload a screenshot of your receipt.</div>
+          </div>
+          <button class="btn btn-gold btn-block" type="submit">Place Order</button>
+        </form>
+      </div>
+      <div class="panel">
+        <h3>Order Summary</h3>
+        ${cart.map(i=>`
+          <div style="padding:10px 0;border-bottom:1px solid var(--line);">
+            <div class="flex-between"><strong>${i.name}</strong>${i.type==='custom'?'<span class="badge badge-processing">Custom</span>':''}</div>
+            <div class="text-muted" style="font-size:.82rem;">${i.qty} x ${Store.fmt(i.unit_price)}</div>
+          </div>`).join('')}
+        <div class="summary-row total"><span>Total</span><span class="amt">${Store.fmt(Store.cartTotal())}</span></div>
+      </div>
+    `;
+
+    let proofDataUrl = null;
+    document.getElementById('cProof').addEventListener('change', (e)=>{
+      const file = e.target.files[0];
+      if(!file) return;
+      const reader = new FileReader();
+      reader.onload = ()=>{
+        proofDataUrl = reader.result;
+        document.getElementById('fileText').textContent = '✓ ' + file.name;
+        document.getElementById('fileLabel').classList.add('has-file');
+      };
+      reader.readAsDataURL(file);
+    });
+
+    document.getElementById('checkoutForm').addEventListener('submit', (e)=>{
+      e.preventDefault();
+      const customer = {
+        name: document.getElementById('cName').value.trim(),
+        email: document.getElementById('cEmail').value.trim(),
+        phone: document.getElementById('cPhone').value.trim(),
+        address: document.getElementById('cAddress').value.trim(),
+      };
+      const order = Store.placeOrder(customer, proofDataUrl);
+      location.href = `order-success.html?id=${order.id}`;
+    });
+  }
+</script>
+</body>
+</html>

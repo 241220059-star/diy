@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>My Orders — Gala Parfume</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=Manrope:wght@400;500;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<div data-nav></div>
+
+<div class="page-head">
+  <div class="wrap">
+    <h1>My Orders</h1>
+    <div class="crumb">Home / My Orders</div>
+  </div>
+</div>
+
+<section class="section">
+  <div class="wrap" id="ordersWrap"></div>
+</section>
+
+<div data-footer></div>
+<script src="js/store.js"></script>
+<script src="js/ui.js"></script>
+<script>
+  UI.mountChrome('', '');
+  const user = Store.currentUser();
+  const wrap = document.getElementById('ordersWrap');
+
+  if(!user){
+    wrap.innerHTML = `<div class="empty"><h3>Please log in</h3><p>Sign in to see your order history.</p><a href="login.html" class="btn btn-gold">Login</a></div>`;
+  } else {
+    const orders = Store.myOrders();
+    if(orders.length===0){
+      wrap.innerHTML = `<div class="empty"><h3>No orders yet</h3><p>Your placed orders will show up here.</p><a href="shop.html" class="btn btn-gold">Start Shopping</a></div>`;
+    } else {
+      wrap.innerHTML = `<div class="panel"><div class="table-wrap"><table class="tbl">
+        <thead><tr><th>Order #</th><th>Date</th><th>Items</th><th>Total</th><th>Status</th></tr></thead>
+        <tbody>
+          ${orders.map(o=>`
+            <tr>
+              <td><strong>${o.id}</strong></td>
+              <td>${new Date(o.date).toLocaleDateString('id-ID',{day:'2-digit',month:'short',year:'numeric'})}</td>
+              <td>${o.items.length} item(s)</td>
+              <td>${Store.fmt(o.total)}</td>
+              <td><span class="badge badge-${o.status.toLowerCase()}">${o.status}</span></td>
+            </tr>`).join('')}
+        </tbody>
+      </table></div></div>`;
+    }
+  }
+</script>
+</body>
+</html>
